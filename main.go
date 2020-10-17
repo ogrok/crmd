@@ -266,7 +266,7 @@ func completeReminder(id int, allowRecurrence bool) (string, error) {
 		next := time.Unix(reminders[i].Timestamp, 0)
 		return "Resolved reminder "+strconv.Itoa(id)+". Next occurrence: "+next.String(), nil
 	} else if allowRecurrence {
-		return "Resolved reminder " + strconv.Itoa(id) + ".", nil
+		return "Resolved reminder "+strconv.Itoa(id)+".", nil
 	} else {
 		return "Deleted reminder "+strconv.Itoa(id)+".", nil
 	}
