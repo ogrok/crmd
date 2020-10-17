@@ -321,9 +321,10 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// persist sorts & overwrites the single file this program looks at
-// with a new set of reminder objects. It always writes totally over.
-// this function presumes the file already exists for some purposes.
+// persist sorts the input slice of reminders and saves over
+// the existing set. This means this function must be passed an
+// exhaustive list of reminders that should exist. An error
+// guarantees a write did not take place.
 func persist(input []models.Reminder) error {
 	sort.Slice(input, func(i, j int) bool {
 		return input[i].Timestamp < input[j].Timestamp
