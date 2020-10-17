@@ -3,6 +3,11 @@ crmd is a simple cli reminders tool that handles timestamps properly. You specif
 
 I wrote this tool to append to new terminal sessions, i.e. add `crmd` to the end of `.bashrc` etc.
 
+## installation
+- compile it locally with a proper go toolchain: `go build`
+- move resulting binary anywhere in PATH
+- for best effect, add `crmd` to the end of `.bashrc` or equivalent
+
 ## features
 - quickly add reminders to list kept in JSON:
     `crmd -d 2020-01-01 -t 07:00 -r yearly "it's the new year!"`
