@@ -10,7 +10,7 @@ I wrote this tool to append to new terminal sessions, i.e. add `crmd` to the end
 
 ## features
 - quickly add reminders to list kept in JSON:
-    `crmd -d 2020-01-01 -t 07:00 -r yearly "it's the new year!"`
+    `crmd -d 2020-01-01 -t 07:00 -r yearly it's the new year!`
 - call without arguments to check for due reminders:
     `crmd`
 - get reminded repeatedly until you acknowledge / confirm:
