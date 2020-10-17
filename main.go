@@ -48,12 +48,12 @@ func main() {
 	descArray, _ := flags.Parse(&opts)
 	description := strings.Join(descArray, " ")
 
-	hasDate := strPopulated(opts.Date)
-	hasTime := strPopulated(opts.Time)
-	hasRecur := strPopulated(opts.Recur)
-	hasDescription := slicePopulated(descArray)
-	hasComplete := isNonzero(opts.Complete)
-	hasDelete := isNonzero(opts.Delete)
+	hasDate := len(opts.Date) > 0
+	hasTime := len(opts.Time) > 0
+	hasRecur := len(opts.Recur) > 0
+	hasDescription := len(descArray) > 0
+	hasComplete := opts.Complete != 0
+	hasDelete := opts.Delete != 0
 	hasListAll := opts.ListAll
 
 	// if recurrence is passed, validate it
@@ -411,16 +411,4 @@ func nextRecurrence(input models.Reminder) (int64, error) {
 	}
 
 	return date.Unix(), nil
-}
-
-func strPopulated(input string) bool {
-	return len(input) > 0
-}
-
-func slicePopulated(input []string) bool {
-	return len(input) > 0
-}
-
-func isNonzero(input int) bool {
-	return input != 0
 }
