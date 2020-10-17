@@ -196,8 +196,34 @@ func createReminder(description string, datetime int64, recurrence string) (stri
 	return "Created reminder " + strconv.Itoa(lowest) + ".", nil
 }
 
-func checkReminders(all bool) {
-	// TODO: Implement checkReminders(). This function should be responsible for own output.
+// checkReminders checks the file either for all reminders, or those with
+// timestamps prior to the present moment, and prints those for the user.
+func checkReminders(listAll bool) {
+	all, err := loadRemindersFile()
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
+
+	if listAll && len(all) == 0 {
+		fmt.Println("no reminders exist")
+		return
+	}
+
+	for _, v := range all {
+		if listAll || v.Timestamp <= time.Now().Unix() {
+
+
+			s := "Reminder! #"+strconv.Itoa(v.ID)+" - "+time.Unix(v.Timestamp, 0).
+				Format("2 Jan 2006")+ ": "+ v.Description
+
+			if len(v.Recurrence) > 0 {
+				s += " - recurs "+v.Recurrence
+			}
+
+			fmt.Println(s)
+		}
+	}
 }
 
 func completeReminder(id int, allowRecurrence bool) (string, error) {
