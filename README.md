@@ -12,6 +12,8 @@ I wrote this tool to append to new terminal sessions, i.e. add `crmd` to the end
     `crmd -c 1`
 - delete reminder:
     `crmd -x 1`
+- list all reminders:
+    `crmd -a`
 - properly schedules recurrence: corrects for daylight savings, uses local time zone, avoids due date drift in monthly, annual scenarios, etc. The only case of note is that reminders on the 29th through 31st of a month can drift to the 1st of the following month, and each 1st thereafter; this is fine for my use cases, so I didn't address it.
 
 ## limitations

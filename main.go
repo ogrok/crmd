@@ -42,6 +42,7 @@ func main() {
 		Recur    string `short:"r" description:"Recurrence schedule for new reminder"`
 		Complete int    `short:"c" description:"ID of reminder to mark complete"`
 		Delete   int    `short:"x" description:"ID of reminder to delete"`
+		ListAll  bool   `short:"a" description:"List all reminders that currently exist"`
 	}
 
 	descArray, _ := flags.Parse(&opts)
@@ -53,6 +54,7 @@ func main() {
 	hasDescription := slicePopulated(descArray)
 	hasComplete := isNonzero(opts.Complete)
 	hasDelete := isNonzero(opts.Delete)
+	hasListAll := opts.ListAll
 
 	// if recurrence is passed, validate it
 	if hasRecur {
@@ -71,14 +73,18 @@ func main() {
 		}
 	}
 
-	// a couple commands are only valid with no extraneous things
+	// some commands are only valid with no extraneous things
 	validComplete := true
-	if hasDate || hasTime || hasRecur || hasDescription || hasDelete {
+	if hasDate || hasTime || hasRecur || hasDescription || hasDelete || hasListAll {
 		validComplete = false
 	}
 	validDelete := true
-	if hasDate || hasTime || hasRecur || hasDescription || hasComplete {
+	if hasDate || hasTime || hasRecur || hasDescription || hasComplete || hasListAll {
 		validDelete = false
+	}
+	validListAll := true
+	if hasDate || hasTime || hasRecur || hasDescription || hasComplete || hasDelete {
+		validListAll = false
 	}
 
 	if hasComplete {
@@ -111,6 +117,16 @@ func main() {
 		os.Exit(0)
 	}
 
+	if hasListAll {
+		if !validListAll {
+			fmt.Println("can only use -a flag by itself")
+			os.Exit(0)
+		}
+
+		checkReminders(true)
+		os.Exit(0)
+	}
+
 	if hasDescription {
 		if !hasDate {
 			fmt.Println("cannot create reminder: no date provided")
@@ -135,7 +151,7 @@ func main() {
 			fmt.Println("description not found; ignoring flags")
 		}
 
-		checkReminders()
+		checkReminders(false)
 	}
 }
 
@@ -180,7 +196,7 @@ func createReminder(description string, datetime int64, recurrence string) (stri
 	return "Created reminder " + strconv.Itoa(lowest) + ".", nil
 }
 
-func checkReminders() {
+func checkReminders(all bool) {
 	// TODO: Implement checkReminders(). This function should be responsible for own output.
 }
 
