@@ -5,13 +5,13 @@ I wrote this tool to append to new terminal sessions, i.e. add `crmd` to the end
 
 ## features
 - quickly add reminders to list kept in JSON:
-   `crmd -d 2020-01-01 -t 07:00 -r yearly "it's the new year!"`
-- call without arguments to check for due reminders
-   `crmd`
+    `crmd -d 2020-01-01 -t 07:00 -r yearly "it's the new year!"`
+- call without arguments to check for due reminders:
+    `crmd`
 - get reminded repeatedly until you acknowledge / confirm:
-   `crmd -c 1`
+    `crmd -c 1`
 - delete reminder:
-   `crmd -x 1`
+    `crmd -x 1`
 - properly schedules recurrence: corrects for daylight savings, uses local time zone, avoids due date drift in monthly, annual scenarios, etc.
 
 ## limitations
