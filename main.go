@@ -8,6 +8,8 @@ import (
 	"github.com/ogrok/crmd/models"
 	"io/ioutil"
 	"os"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -88,7 +90,7 @@ func main() {
 		result, err := completeReminder(opts.Complete, true)
 		if err != nil {
 			fmt.Println(err.Error())
-			os.Exit(1)
+			os.Exit(0)
 		}
 		fmt.Println(result)
 		os.Exit(0)
@@ -103,7 +105,7 @@ func main() {
 		result, err := completeReminder(opts.Delete, false)
 		if err != nil {
 			fmt.Println(err.Error())
-			os.Exit(1)
+			os.Exit(0)
 		}
 		fmt.Println(result)
 		os.Exit(0)
@@ -123,7 +125,7 @@ func main() {
 		result, err := createReminder(description, timestamp, opts.Recur)
 		if err != nil {
 			fmt.Println(err.Error())
-			os.Exit(1)
+			os.Exit(0)
 		}
 
 		fmt.Println(result)
@@ -137,11 +139,45 @@ func main() {
 	}
 }
 
-// FILE I/O
+// ---------------
+// --- FILE I/O --
+// ---------------
 
 func createReminder(description string, datetime int64, recurrence string) (string, error) {
-	// TODO: Implement createReminder().
-	return "", nil
+	reminders, err := loadRemindersFile()
+	if err != nil {
+		return "", err
+	}
+
+	// get lowest ID not in use
+	lowest := 1
+	for {
+		validated := true
+		for _, v := range reminders {
+			if v.ID == lowest {
+				validated = false
+				break
+			}
+		}
+		if validated {
+			break
+		}
+		lowest++
+	}
+
+	reminders = append(reminders, models.Reminder{
+		ID:          lowest,
+		Description: description,
+		Recurrence:  recurrence,
+		Timestamp:   datetime,
+	})
+
+	err = persist(reminders)
+	if err != nil {
+		return "", err
+	}
+
+	return "Created reminder " + strconv.Itoa(lowest) + ".", nil
 }
 
 func checkReminders() {
@@ -149,11 +185,52 @@ func checkReminders() {
 }
 
 func completeReminder(id int, allowRecurrence bool) (string, error) {
-	// TODO: Implement completeReminder().
-	return "", nil
+	reminders, err := loadRemindersFile()
+	if err != nil {
+		return "", err
+	}
+
+	i := -1
+	for k, v := range reminders {
+		if v.ID == id {
+			i = k
+			break
+		}
+	}
+
+	if i < 0 {
+		return "", errors.New("reminder " + strconv.Itoa(id) + " not found")
+	}
+
+	willRecur := false
+	if !allowRecurrence || len(reminders[i].Recurrence) == 0 {
+		reminders[i] = reminders[len(reminders)-1]
+		reminders = reminders[0:len(reminders)-1]
+	} else {
+		next, err := nextRecurrence(reminders[i])
+		if err != nil {
+			return "", err
+		}
+		reminders[i].Timestamp = next
+		willRecur = true
+	}
+
+	err = persist(reminders)
+	if err != nil {
+		 return "", err
+	}
+
+	if willRecur {
+		next := time.Unix(reminders[i].Timestamp, 0)
+		return "Resolved reminder "+strconv.Itoa(id)+". Next occurrence: "+next.String(), nil
+	} else if allowRecurrence {
+		return "Resolved reminder " + strconv.Itoa(id) + ".", nil
+	} else {
+		return "Deleted reminder "+strconv.Itoa(id)+".", nil
+	}
 }
 
-func loadRemindersFile() (map[int]models.Reminder, error) {
+func loadRemindersFile() ([]models.Reminder, error) {
 	home, err := os.UserHomeDir()
 	if err != nil {
 		return nil, err
@@ -188,13 +265,8 @@ func loadRemindersFile() (map[int]models.Reminder, error) {
 
 	bytes, _ := ioutil.ReadAll(jsonFile)
 
-	var reminders []models.Reminder
-	json.Unmarshal(bytes, &reminders)
-
-	output := map[int]models.Reminder{}
-	for _, v := range reminders {
-		output[v.ID] = v
-	}
+	var output []models.Reminder
+	json.Unmarshal(bytes, &output)
 
 	return output, nil
 }
@@ -207,7 +279,39 @@ func fileExists(filename string) bool {
 	return !info.IsDir()
 }
 
-// HELPERS
+// persist sorts & overwrites the single file this program looks at
+// with a new set of reminder objects. It always writes totally over.
+// this function presumes the file already exists for some purposes.
+func persist(input []models.Reminder) error {
+	sort.Slice(input, func(i, j int) bool {
+		return input[i].Timestamp < input[j].Timestamp
+	})
+
+	bytes, err := json.Marshal(input)
+	if err != nil {
+		return err
+	}
+
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return err
+	}
+	directory := home + Directory
+
+	file, err := os.Create(directory + StorageFile)
+	if err != nil {
+		return err
+	}
+
+	defer file.Close()
+
+	_, err = file.Write(bytes)
+	return err
+}
+
+// ---------------
+// --- HELPERS ---
+// ---------------
 
 func toUnixDate(d string, t string) (int64, error) {
 	// try to parse with both date and time
@@ -224,6 +328,46 @@ func toUnixDate(d string, t string) (int64, error) {
 	}
 
 	return result.Unix(), nil
+}
+
+// nextRecurrence calculates the next time that a reminder should recur,
+// relative to now, if recurrence is present. If not, function errors.
+func nextRecurrence(input models.Reminder) (int64, error) {
+	date := time.Unix(input.Timestamp, 0)
+	now := time.Now()
+
+	switch input.Recurrence {
+	case RecurrenceDaily:
+		date = date.AddDate(0, 0, 1)
+		for now.After(date) {
+			date = date.AddDate(0, 0, 1)
+		}
+	case RecurrenceWeekly:
+		date = date.AddDate(0, 0, 7)
+		for now.After(date) {
+			date = date.AddDate(0, 0, 7)
+		}
+	case RecurrenceMonthly:
+		date = date.AddDate(0, 1, 0)
+		for now.After(date) {
+			date = date.AddDate(0, 1, 0)
+		}
+	case RecurrenceQuarterly:
+		date = date.AddDate(0, 3, 0)
+		for now.After(date) {
+			date = date.AddDate(0, 3, 0)
+		}
+	case RecurrenceYearly:
+		date = date.AddDate(1, 0, 0)
+		for now.After(date) {
+			date = date.AddDate(1, 0, 0)
+		}
+	default:
+		return -1, errors.New("could not find next recurrence date; " +
+			"blank or invalid recurrence schedule")
+	}
+
+	return date.Unix(), nil
 }
 
 func strPopulated(input string) bool {
